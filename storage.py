@@ -25,7 +25,6 @@ class FileStorage(Storage):
         for name in os.listdir(self._location):
             path = os.path.join(self._location, name)
             if not name.startswith('.') and os.path.isfile(path):
-                print path
                 self._read(path)
     
     def _do_location(self, location):
