@@ -16,14 +16,15 @@ from PyQt4.QtGui  import *
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
+import pygments.util
 
 
-from storage import FileStorage 
-
+from storage import FileStorage, get_languages
 
 class AddDialog(QDialog):
     def __init__(self, parent=None):
         super(AddDialog, self).__init__(parent)
+        self.parent = parent
         
         self.code_editor = QTextEdit(self)
         self.code_editor.setAcceptRichText(False)
@@ -39,8 +40,8 @@ class AddDialog(QDialog):
         self.tags_label.setBuddy(self.tags_input)
         
         self.lang_combo = QComboBox()
-        self.lang_combo.addItems(["Solid", "Dashed", "Dotted", "DashDotted", "DashDotDotted"])
-        self.lang_label = QLabel("&Language:")     
+        self.lang_combo.addItems(['Text'] + get_languages())
+        self.lang_label = QLabel("&Language:")
         self.lang_label.setBuddy(self.lang_combo)
         
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -72,10 +73,11 @@ class AddDialog(QDialog):
         
     def on_add(self):
         dialog = self
-        code = unicode(dialog.code_editor.toPlainText())
-        tags = unicode(dialog.tags_input.text())
-        lang = unicode(dialog.lang_combo.currentText())
+        code = unicode(dialog.code_editor.toPlainText()).encode('utf8')
+        tags = unicode(dialog.tags_input.text()).encode('utf8').split()
+        lang = unicode(dialog.lang_combo.currentText()).encode('utf8').lower()
         print code, tags, lang
+        self.parent.storage.add(code, tags, lang)
         #self.storage.add(code, tags, lang)
         #print 'stored'
         
@@ -179,8 +181,7 @@ class MainWindow(QMainWindow):
         if reason == QSystemTrayIcon.Trigger:
             self.on_toogle()
         if reason == QSystemTrayIcon.MiddleClick:
-            pass
-            # TODO: on_add
+            self. on_add()
     
     def on_toogle(self, *a):
         print a
@@ -200,23 +201,38 @@ class MainWindow(QMainWindow):
         query = unicode(self.input.text()).encode('utf-8').split()
         
         result = self.storage.search(query)
-        self.set_results(result)
+        self.set_results(result, query)
     
     def on_escape(self, *a):
         self.set_results([])
         self.input.setText('')
         self.setVisible(False)
     
-    def set_results(self, results):
+    def set_results(self, results, query_tags=[]):
         self.result = results
         if results:
-            data = ['<table>']
+            data = ['<table width="100%" cellspacing="0">']
             for i, r in enumerate(results):
-                lexer = get_lexer_by_name("python", stripall=True)
+                try:
+                    lexer = get_lexer_by_name(r[2], stripall=True, tabsize=4)
+                except pygments.util.ClassNotFound:
+                    lexer = get_lexer_by_name('text', stripall=True, tabsize=4)
                 formatter = HtmlFormatter(linenos=False, noclasses=True)
-                code = highlight(r[0], lexer, formatter)
-                tags = ' '.join(['<b>%s</b>' % tag for tag in r[1]])
-                data.append('<tr><td><div style="font-size:32px; margin-right: 10px">%d</div></td><td>%s%s</td></tr>' % (i, code, tags))
+                code = highlight(r[0].rstrip(), lexer, formatter)
+                sufix = '</pre></div>\n'
+                if code.endswith(sufix):
+                    code = code[:-len(sufix)].rstrip() + sufix
+                code = code.rstrip()
+                print `code`
+                #tags = ' '.join(['<b>%s</b>' % tag for tag in r[1]])
+                tags = []
+                for tag in sorted(list(r[1])):
+                    if tag in query_tags:
+                        tags.append('<b>%s</b>' % tag)
+                    else:
+                        tags.append(tag)
+                tags = ' '.join(tags)
+                data.append('<tr style="background-color:%s"><td width="1%%"><div style="font-size:32px; margin: 10px">%d</div></td><td>%s%s</td></tr>' % (['#cccccc', '#dddddd'][i % 2], i + 1, code, tags))
             data.append('</table>')
             text = '\n'.join(data)
             
@@ -224,7 +240,7 @@ class MainWindow(QMainWindow):
             self.results.setText(text)
         else:
             self.results.hide()
-    
+
 
 if __name__ == "__main__":
     #aboutData = KAboutData (
