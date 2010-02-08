@@ -19,7 +19,19 @@ from pygments.formatters import HtmlFormatter
 import pygments.util
 
 
-from storage import FileStorage, get_languages
+from storage import FileStorage
+from languages import Languages
+
+def add_combo_items(combo, items):
+    for item in items:
+        if item is None:
+            if hasattr(combo, 'insertSeparator'):
+                combo.insertSeparator(1000)
+            else:
+                combo.insertItem(1000, '----')
+        else:
+            combo.insertItem(1000, item)
+
 
 class AddDialog(QDialog):
     def __init__(self, parent=None):
@@ -40,7 +52,7 @@ class AddDialog(QDialog):
         self.tags_label.setBuddy(self.tags_input)
         
         self.lang_combo = QComboBox()
-        self.lang_combo.addItems(['Text'] + get_languages())
+        add_combo_items(self.lang_combo, ['Text', None] + self.parent.languages.get_names())
         self.lang_label = QLabel("&Language:")
         self.lang_label.setBuddy(self.lang_combo)
         
@@ -136,7 +148,8 @@ class MainWindow(QMainWindow):
         #menu.addAction(suspendAction)
         
         
-        self.storage = FileStorage()
+        self.storage   = FileStorage()
+        self.languages = Languages()
         
         self.input = QLineEdit(self)
         self.input.setMinimumWidth(300)
@@ -163,9 +176,18 @@ class MainWindow(QMainWindow):
             shortcut.setKey("Ctrl+%d" % i)
             self.connect(shortcut, SIGNAL("activated()"), partial(self.on_copy, i))
             
+            shortcut = QShortcut(self)
+            shortcut.setKey("Shift+Ctrl+%d" % i)
+            self.connect(shortcut, SIGNAL("activated()"), partial(self.on_delete, i))
+            
         shortcut = QShortcut(self)
         shortcut.setKey("Esc")
         self.connect(shortcut, SIGNAL("activated()"), self.on_escape)
+        
+        flags = self.windowFlags() | Qt.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
+        
+        self.set_results([])
         
         self.add_dialog = AddDialog(self)
     
@@ -196,6 +218,20 @@ class MainWindow(QMainWindow):
             text = self.result[nr][0]
             QApplication.clipboard().setText(text)
             self.close()
+            
+    def on_delete(self, nr):
+        nr = nr - 1;
+        if nr < len(self.result):
+            reply = QMessageBox.question(
+                self,
+                "Snipper - delete snippet",
+                "Delete snippet?",
+                QMessageBox.Yes|QMessageBox.Default,
+                QMessageBox.No|QMessageBox.Escape
+            )
+            if reply:
+                text = self.result[nr][0]
+                self.close()
     
     def on_return(self, *a):
         query = unicode(self.input.text()).encode('utf-8').split()
@@ -223,8 +259,7 @@ class MainWindow(QMainWindow):
                 if code.endswith(sufix):
                     code = code[:-len(sufix)].rstrip() + sufix
                 code = code.rstrip()
-                print `code`
-                #tags = ' '.join(['<b>%s</b>' % tag for tag in r[1]])
+                
                 tags = []
                 for tag in sorted(list(r[1])):
                     if tag in query_tags:
@@ -232,6 +267,7 @@ class MainWindow(QMainWindow):
                     else:
                         tags.append(tag)
                 tags = ' '.join(tags)
+                
                 data.append('<tr style="background-color:%s"><td width="1%%"><div style="font-size:32px; margin: 10px">%d</div></td><td>%s%s</td></tr>' % (['#cccccc', '#dddddd'][i % 2], i + 1, code, tags))
             data.append('</table>')
             text = '\n'.join(data)

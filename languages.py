@@ -78,7 +78,7 @@ class Languages(object):
 		self._dict = {}
 		for row in self._list:
 			lang = Language(row)
-			for i in row[1:]:
+			for i in row:
 				assert i not in self._dict
 				self._dict[i] = lang
 	
