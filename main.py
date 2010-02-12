@@ -22,6 +22,7 @@ import pygments.util
 from storage import FileStorage
 from languages import Languages
 
+
 def add_combo_items(combo, items):
     for item in items:
         if item is None:
@@ -58,7 +59,6 @@ class AddDialog(QDialog):
         
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttonBox.button(QDialogButtonBox.Ok).setDefault(True)
-
         
         layout = QGridLayout()
         layout.addWidget(self.code_editor, 0, 0, 1, 2)
@@ -69,20 +69,16 @@ class AddDialog(QDialog):
         layout.addWidget(buttonBox,        3, 0, 1, 2)
         self.setLayout(layout)
         
-        #self.connect(okButton, SIGNAL("clicked()"), self, SLOT("accept()"))
-        #self.connect(cancelButton, SIGNAL("clicked()"), self, SLOT("reject()"))
         self.connect(buttonBox, SIGNAL("accepted()"), self, SLOT("accept()"))
         self.connect(buttonBox, SIGNAL("rejected()"), self, SLOT("reject()"))
-        #self.connect(buttonBox, SIGNAL("accepted()"), self.on_add)
-        #self.connect(buttonBox, SIGNAL("rejected()"), self, SLOT("reject()"))
         self.setWindowTitle("Add snippet")
-        
+    
     def reset_dialog(self):
         self.code_editor.clear()
         self.tags_input.setText('')
         self.lang_combo.setCurrentIndex(0)
         self.code_editor.setFocus()
-        
+    
     def on_add(self):
         dialog = self
         code = unicode(dialog.code_editor.toPlainText()).encode('utf8')
@@ -90,106 +86,93 @@ class AddDialog(QDialog):
         lang = unicode(dialog.lang_combo.currentText()).encode('utf8').lower()
         print code, tags, lang
         self.parent.storage.add(code, tags, lang)
-        #self.storage.add(code, tags, lang)
-        #print 'stored'
-        
-       
-
+    
+    def closeEvent(self, event):
+        self.reject()
+        event.ignore()
+    
     def accept(self):
         self.on_add()
         self.reset_dialog()
         self.hide()
-
+    
     def reject(self):
         print 'reject'
         self.reset_dialog()
         self.hide()
 
 
-class MainWindow(QMainWindow):
+class MainWindow(QDialog):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
-        
-        self.systray = QSystemTrayIcon(QIcon('icon.png'), self)
-        self.systray.show()
-        
-        menu = QMenu(self)
-        
-        showAction = menu.addAction('Show')
-        self.connect(showAction, SIGNAL("triggered()"), self.on_toogle)
-        
-        addAction = menu.addAction('Add')
-        self.connect(addAction, SIGNAL("triggered()"), self.on_add)
-        
-        menu.addSeparator()
-        
-        exitAction = menu.addAction('Exit')
-        self.connect(exitAction, SIGNAL("triggered()"), self.on_exit)
-        
-        menu.setDefaultAction(showAction)
-        self.systray.setContextMenu(menu)
-        self.connect(self.systray, SIGNAL("activated(QSystemTrayIcon::ActivationReason)"), self.on_systray)
-        
-        
-        #self.systray = KSystemTrayIcon(self)
-        #self.systray.setIcon(QIcon(BarIcon("battery-charging")))
-        #self.systray.show()
-        #
-        #menu = self.systray.contextMenu()
-        #
-        #suspendAction = self.systray.actionCollection().addAction("suspend")
-        #suspendAction.setText("Suspend")
-        #suspendAction.setIcon(QIcon('battery-charging'))
-        ##sk =  KShortcut(Qt.CTRL + Qt.ALT + Qt.Key_N)
-        #sk =  KShortcut(Qt.Key_F6)
-        #suspendAction.setShortcut(sk)
-        #suspendAction.setGlobalShortcut(sk)
-        #self.connect(suspendAction, SIGNAL("triggered()"), self.on_toogle)
-        #menu.addAction(suspendAction)
         
         
         self.storage   = FileStorage()
         self.languages = Languages()
         
+        
+        self.setWindowTitle("Snipper clip")
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        
+        
+        # -----------------------------------------------------------
+        # Window layout
         self.input = QLineEdit(self)
         self.input.setMinimumWidth(300)
         QObject.connect(self.input, SIGNAL('returnPressed()'), self.on_return)
         
         self.results = QLabel("")
         
-        self.central = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(self.input)
+        layout.addWidget(self.results)
+        layout.setSizeConstraint(QLayout.SetFixedSize)
+        self.setLayout(layout)
         
-        self._layout = QVBoxLayout()
         
-        self._layout.addWidget(self.input)
-        self._layout.addWidget(self.results)
-        
-        self._layout.setSizeConstraint(QLayout.SetFixedSize)
-        self.central.setLayout(self._layout)
-        self.layout().setSizeConstraint(QLayout.SetFixedSize)
-        
-        self.setCentralWidget(self.central)
-        self.setWindowTitle("Snipper clip")
-
+        # -----------------------------------------------------------
+        # In window shortcuts
+        def create_shortcut(keys, slot, *args):
+            shortcut = QShortcut(self)
+            shortcut.setKey(keys)
+            if slot:
+                if args:
+                    QObject.connect(shortcut, SIGNAL("activated()"), partial(slot, *args))
+                else:
+                    QObject.connect(shortcut, SIGNAL("activated()"), slot)
+            
         for i in xrange(0, 10):
-            shortcut = QShortcut(self)
-            shortcut.setKey("Ctrl+%d" % i)
-            self.connect(shortcut, SIGNAL("activated()"), partial(self.on_copy, i))
+            create_shortcut("Ctrl+%d" % i, self.on_copy, i)
+            create_shortcut("Shift+Ctrl+%d" % i, self.on_delete, i)
             
-            shortcut = QShortcut(self)
-            shortcut.setKey("Shift+Ctrl+%d" % i)
-            self.connect(shortcut, SIGNAL("activated()"), partial(self.on_delete, i))
+        create_shortcut("Esc", self.on_escape)
+        
+        
+        # -----------------------------------------------------------
+        # Systray and global shortcuts
+        self.systray = KSystemTrayIcon(self)
+        self.systray.setIcon(QIcon('icon.png'))
+        self.systray.show()
+        
+        def add_action(systray, id, text, icon, shortcut, slot):
+            action = systray.actionCollection().addAction(id)
+            action.setText(text)
+            action.setIcon(icon)
+            if shortcut:
+                shortcut =  KShortcut(shortcut)
+                action.setShortcut(shortcut)
+                action.setGlobalShortcut(shortcut)
+            self.connect(action, SIGNAL("triggered()"), slot)
             
-        shortcut = QShortcut(self)
-        shortcut.setKey("Esc")
-        self.connect(shortcut, SIGNAL("activated()"), self.on_escape)
+            menu = systray.contextMenu()
+            menu.addAction(action)
+            
+        add_action(self.systray, 'find-snippet', "Find snippet", QIcon('icon.png'), 'Ctrl+Alt+B', self.on_toogle)
+        add_action(self.systray, 'add-snippet',  "Add snippet",  QIcon('icon.png'), 'Ctrl+Alt+N', self.on_add)
         
-        flags = self.windowFlags() | Qt.WindowStaysOnTopHint
-        self.setWindowFlags(flags)
-        
-        self.set_results([])
         
         self.add_dialog = AddDialog(self)
+        self.set_results([])
     
     def closeEvent(self, event):
         self.setVisible(False)
@@ -203,11 +186,13 @@ class MainWindow(QMainWindow):
         if reason == QSystemTrayIcon.Trigger:
             self.on_toogle()
         if reason == QSystemTrayIcon.MiddleClick:
-            self. on_add()
+            self.on_add()
     
     def on_toogle(self, *a):
-        print a
-        self.setVisible(not self.isVisible())
+        if self.isVisible():
+            self.hide()
+        else:
+            self.show()
     
     def on_add(self):
         self.add_dialog.show()
@@ -218,7 +203,7 @@ class MainWindow(QMainWindow):
             text = self.result[nr][0]
             QApplication.clipboard().setText(text)
             self.close()
-            
+    
     def on_delete(self, nr):
         nr = nr - 1;
         if nr < len(self.result):
@@ -279,18 +264,14 @@ class MainWindow(QMainWindow):
 
 
 if __name__ == "__main__":
-    #aboutData = KAboutData (
-    #    "python-kde-tutorial", "", ki18n("PyKDE Tutorial"), "0.2", ki18n("A Small Qt WebKit Example"),
-    #    KAboutData.License_GPL, ki18n("(c) 2008 Krzysztof Kosyl"),
-    #    ki18n("none"), "www.kubuntu.org", ''
-    #)
-    #KCmdLineArgs.init(sys.argv, aboutData)
-    #app = KApplication()
+    aboutData = KAboutData (
+        "snipper", "", ki18n("Code Snipper"), "0.2", ki18n("Easy acces to code snippets"),
+        KAboutData.License_GPL, ki18n("(c) 2008 Krzysztof Kosyl"),
+        ki18n("none"), "www.examlpe.com", ''
+    )
+    KCmdLineArgs.init(sys.argv, aboutData)
+    app = KApplication()
     
-    app = QApplication(sys.argv)
     main_window = MainWindow()
-    
-    main_window.show()
-    
     sys.exit(app.exec_())
 
