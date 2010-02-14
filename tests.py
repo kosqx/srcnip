@@ -6,6 +6,7 @@ import unittest
 
 
 import languages
+import storage
 
 
 class LanguagesTestCase(unittest.TestCase):
@@ -40,6 +41,17 @@ class LanguagesTestCase(unittest.TestCase):
     def testNamesSort(self):
         names = self.lang.get_names()
         self.assertEquals(names, sorted(names))
+
+
+class SnippetTestCase(unittest.TestCase):
+    def setUp(self):
+        self.sn = storage.Snippet('a = "żółw"', 'py var', 'py')
+    
+    def testAttr(self):
+        self.assertEquals(self.sn.id,   None)
+        self.assertEquals(self.sn.code, u'a = "żółw"')
+        self.assertEquals(self.sn.tags, set([u'py', u'var']))
+        self.assertEquals(self.sn.lang, u'py')
 
 
 if __name__ == '__main__':

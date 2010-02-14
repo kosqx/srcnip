@@ -9,6 +9,25 @@ import hashlib
 from languages import Languages
 
 
+def to_unicode(string):
+    if string is None:
+        return None
+    elif isinstance(string, unicode):
+        return string
+    elif isinstance(string, str):
+        return unicode(string, 'utf8')
+
+
+class Snippet(object):
+    def __init__(self, code, tags, lang, id=None):
+        super(Snippet, self).__init__()
+        
+        self.id = id
+        self.code = to_unicode(code)
+        self.tags = set(to_unicode(tags).split())
+        self.lang = to_unicode(lang)
+
+
 def parse_query(query):
     SHORT = {
         'l':        'lang',
