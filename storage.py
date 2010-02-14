@@ -135,7 +135,7 @@ class FileStorage(Storage):
         
         data = []
         if snippet.lang:
-            data.append('ulang: %s' % snippet.lang)
+            data.append(u'lang: %s' % snippet.lang)
         if snippet.tags:
             data.append(u'tags: %s' % ' '.join(sorted(list(snippet.tags))))
         data.append(u'----')
@@ -148,3 +148,10 @@ class FileStorage(Storage):
         
         return name
 
+    def lang_count(self):
+        result = {}
+        
+        for item in self._data:
+            result[item.lang] = result.get(item.lang, 0) + 1
+        
+        return result

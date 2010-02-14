@@ -24,6 +24,7 @@ from languages import languages
 
 
 def add_combo_items(combo, items):
+    combo.clear()
     for item in items:
         if item is None:
             if hasattr(combo, 'insertSeparator'):
@@ -32,6 +33,15 @@ def add_combo_items(combo, items):
                 combo.insertItem(1000, '----')
         else:
             combo.insertItem(1000, item)
+
+
+def popular_list(popular_dict):
+    result = [(-popular_dict[key], u'%s' % languages[key].name) for key in popular_dict if key]
+    result.sort()
+    tmp = [b for a, b in result[:5]]
+    if tmp:
+        tmp.append(None)
+    return tmp
 
 
 class AddDialog(QDialog):
@@ -53,7 +63,6 @@ class AddDialog(QDialog):
         self.tags_label.setBuddy(self.tags_input)
         
         self.lang_combo = QComboBox()
-        add_combo_items(self.lang_combo, ['Text', None] + languages.get_names())
         self.lang_label = QLabel("&Language:")
         self.lang_label.setBuddy(self.lang_combo)
         
@@ -72,8 +81,12 @@ class AddDialog(QDialog):
         self.connect(buttonBox, SIGNAL("accepted()"), self, SLOT("accept()"))
         self.connect(buttonBox, SIGNAL("rejected()"), self, SLOT("reject()"))
         self.setWindowTitle("Add snippet")
+        
+        self.reset_dialog()
     
     def reset_dialog(self):
+        add_combo_items(self.lang_combo, ['Text', None] + popular_list(self.parent.storage.lang_count()) + languages.get_names())
+        
         self.code_editor.clear()
         self.tags_input.setText('')
         self.lang_combo.setCurrentIndex(0)
@@ -251,7 +264,12 @@ class MainWindow(QDialog):
                         tags.append(tag)
                 tags = ' '.join(tags)
                 
-                data.append('<tr style="background-color:%s"><td width="1%%"><div style="font-size:32px; margin: 10px">%d</div></td><td>%s%s</td></tr>' % (['#cccccc', '#dddddd'][i % 2], i + 1, code, tags))
+                if r.lang in languages:
+                    lang = u' - <i>%s</i>' % languages[r.lang].name
+                else:
+                    lang = ''
+                
+                data.append('<tr style="background-color:%s"><td width="1%%"><div style="font-size:32px; margin: 10px">%d</div></td><td>%s%s%s</td></tr>' % (['#cccccc', '#dddddd'][i % 2], i + 1, code, tags, lang))
             data.append('</table>')
             text = '\n'.join(data)
             
