@@ -24,8 +24,16 @@ class Snippet(object):
         
         self.id = id
         self.code = to_unicode(code)
-        self.tags = set(to_unicode(tags).split())
-        self.lang = to_unicode(lang)
+        
+        if isinstance(tags, basestring):
+            self.tags = set(to_unicode(tags).split())
+        else:
+            self.tags = set([unicode(i) for i in tags])
+        
+        if lang in languages:
+            self.lang = to_unicode(languages[lang].code)
+        else:
+            self.lang = None
 
 
 def parse_query(query):
@@ -56,7 +64,7 @@ class Storage:
     def search(self, tags, lang):
         pass
     
-    def add(self, content, tags, lang):
+    def add(self, snippet):
         pass
     
     def tags_count(self):
@@ -68,14 +76,13 @@ class Storage:
 
 class FileStorage(Storage):
     def __init__(self, location='~/.snipper'):
-        #self._languages = Languages()
         self._data = []
         self._do_location(location)
         
         for name in os.listdir(self._location):
             path = os.path.join(self._location, name)
             if not name.startswith('.') and os.path.isfile(path):
-                self._read(path)
+                self._data.append(self._read(path))
     
     def _do_location(self, location):
         location = os.path.abspath(os.path.expanduser(location))
@@ -89,59 +96,55 @@ class FileStorage(Storage):
     
     def _read(self, filename):
         f = open(filename)
-        lines = f.read().splitlines()
+        lines = unicode(f.read(), 'utf8').splitlines()
         f.close()
         
-        content = ''
+        id = os.path.basename(filename)
+        code = ''
         tags = set()
         lang = None
         
         for i, line in enumerate(lines):
             if line.startswith('lang:'):
                 lang = line[5:].strip()
-                try:
-                    lang = languages[lang].code
-                except KeyError:
-                    pass
             if line.startswith('tags:'):
                 tags = set(line[5:].strip().split())
             if line.startswith('----'):
-                content = '\n'.join(lines[i + 1:])
+                code = '\n'.join(lines[i + 1:])
+                break
         
-        self._data.append((content, tags, lang))
+        return Snippet(code, tags, lang, id)
     
     def search(self, tags=[], lang=None):
         tags = set(tags)
         result = []
         for item in self._data:
-            if item[1].issuperset(tags) and (item[2] == lang or lang is None):
+            if item.tags.issuperset(tags) and (item.lang == lang or lang is None):
                 result.append(item)
         
         return result
     
-    
-    def add(self, content, tags, lang):
-        tags = set(tags)
-        try:
-            lang = languages[lang].code
-        except KeyError:
-            pass
-        self._data.append((content, tags, lang))
-        self._write(content, tags, lang)
+    def add(self, snippet):
+        id = self._write(snippet)
+        snippet.id = id
+        self._data.append(snippet)
+        return id
 
-    def _write(self, content, tags, lang):
-        name = hashlib.md5(content).hexdigest()
+    def _write(self, snippet):
+        name = hashlib.md5(snippet.code.encode('utf8')).hexdigest()
         
         data = []
-        if lang:
-            data.append('lang: %s' % lang)
-        if tags:
-            data.append('tags: %s' % ' '.join(tags))
-        data.append('----')
-        data.append(content)
-        data = '\n'.join(data)
+        if snippet.lang:
+            data.append('ulang: %s' % snippet.lang)
+        if snippet.tags:
+            data.append(u'tags: %s' % ' '.join(sorted(list(snippet.tags))))
+        data.append(u'----')
+        data.append(snippet.code)
+        data = u'\n'.join(data)
         
         f = open(os.path.join(self._location, name), 'w')
-        f.write(data)
+        f.write(data.encode('utf8'))
         f.close()
+        
+        return name
 

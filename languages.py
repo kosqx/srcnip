@@ -29,6 +29,12 @@ class Languages(object):
     def __getitem__(self, key):
         return self._dict[key.lower()]
     
+    def __contains__(self, key):
+        if key is None:
+            return False
+        else:
+            return key.lower() in  self._dict
+    
     def get_names(self):
         return [row[0] for row in self._list]
 

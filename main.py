@@ -19,7 +19,7 @@ from pygments.formatters import HtmlFormatter
 import pygments.util
 
 
-from storage import FileStorage
+from storage import FileStorage, Snippet
 from languages import languages
 
 
@@ -80,12 +80,11 @@ class AddDialog(QDialog):
         self.code_editor.setFocus()
     
     def on_add(self):
-        dialog = self
-        code = unicode(dialog.code_editor.toPlainText()).encode('utf8')
-        tags = unicode(dialog.tags_input.text()).encode('utf8').split()
-        lang = unicode(dialog.lang_combo.currentText()).encode('utf8').lower()
-        print code, tags, lang
-        self.parent.storage.add(code, tags, lang)
+        code = unicode(self.code_editor.toPlainText())
+        tags = unicode(self.tags_input.text())
+        lang = unicode(self.lang_combo.currentText())
+        
+        self.parent.storage.add(Snippet(code, tags, lang))
     
     def closeEvent(self, event):
         self.reject()
@@ -97,7 +96,6 @@ class AddDialog(QDialog):
         self.hide()
     
     def reject(self):
-        print 'reject'
         self.reset_dialog()
         self.hide()
 
@@ -235,18 +233,18 @@ class MainWindow(QDialog):
             data = ['<table width="100%" cellspacing="0">']
             for i, r in enumerate(results):
                 try:
-                    lexer = get_lexer_by_name(r[2], stripall=True, tabsize=4)
+                    lexer = get_lexer_by_name(r.lang, stripall=True, tabsize=4)
                 except pygments.util.ClassNotFound:
                     lexer = get_lexer_by_name('text', stripall=True, tabsize=4)
                 formatter = HtmlFormatter(linenos=False, noclasses=True)
-                code = highlight(r[0].rstrip(), lexer, formatter)
+                code = highlight(r.code.rstrip(), lexer, formatter)
                 sufix = '</pre></div>\n'
                 if code.endswith(sufix):
                     code = code[:-len(sufix)].rstrip() + sufix
                 code = code.rstrip()
                 
                 tags = []
-                for tag in sorted(list(r[1])):
+                for tag in sorted(list(r.tags)):
                     if tag in query_tags:
                         tags.append('<b>%s</b>' % tag)
                     else:

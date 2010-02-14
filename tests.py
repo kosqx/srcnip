@@ -6,7 +6,7 @@ import unittest
 
 
 from languages import languages
-import storage
+from storage import Snippet
 
 
 class LanguagesTestCase(unittest.TestCase):
@@ -25,6 +25,15 @@ class LanguagesTestCase(unittest.TestCase):
             return languages['unexisting']
             
         self.assertRaises(KeyError, do_get)
+        
+    def testContains(self):
+        self.assertTrue('Python' in languages)
+        self.assertTrue('python' in languages)
+        self.assertTrue('py'     in languages)
+        self.assertTrue('.py'    in languages)
+        
+        self.assertFalse('Foo' in languages)
+        self.assertFalse(None  in languages)
     
     def testNames(self):
         names = languages.get_names()
@@ -41,14 +50,41 @@ class LanguagesTestCase(unittest.TestCase):
 
 
 class SnippetTestCase(unittest.TestCase):
-    def setUp(self):
-        self.sn = storage.Snippet('a = "żółw"', 'py var', 'py')
-    
     def testAttr(self):
-        self.assertEquals(self.sn.id,   None)
-        self.assertEquals(self.sn.code, u'a = "żółw"')
-        self.assertEquals(self.sn.tags, set([u'py', u'var']))
-        self.assertEquals(self.sn.lang, u'py')
+        sn = Snippet('a = "żółw"', 'py var', 'py')
+        
+        self.assertEquals(sn.id,   None)
+        self.assertEquals(sn.code, u'a = "żółw"')
+        self.assertEquals(sn.tags, set([u'py', u'var']))
+        self.assertEquals(sn.lang, u'python')
+        
+    def testTags(self):
+        self.assertEquals(Snippet('', '',    'py').tags, set())
+        self.assertEquals(Snippet('', u'',   'py').tags, set())
+        self.assertEquals(Snippet('', (),    'py').tags, set())
+        self.assertEquals(Snippet('', [],    'py').tags, set())
+        self.assertEquals(Snippet('', set(), 'py').tags, set())
+        
+        self.assertEquals(Snippet('', 'py var',             'py').tags, set([u'py', u'var']))
+        self.assertEquals(Snippet('', u'py var',            'py').tags, set([u'py', u'var']))
+        
+        self.assertEquals(Snippet('', ['py', 'var'],        'py').tags, set([u'py', u'var']))
+        self.assertEquals(Snippet('', [u'py', u'var'],      'py').tags, set([u'py', u'var']))
+        
+        self.assertEquals(Snippet('', ('py', 'var'),        'py').tags, set([u'py', u'var']))
+        self.assertEquals(Snippet('', (u'py', u'var'),      'py').tags, set([u'py', u'var']))
+        
+        self.assertEquals(Snippet('', set(['py', 'var']),   'py').tags, set([u'py', u'var']))
+        self.assertEquals(Snippet('', set([u'py', u'var']), 'py').tags, set([u'py', u'var']))
+        
+    def testLang(self):
+        self.assertEquals(Snippet('', '', 'Python').lang, 'python')
+        self.assertEquals(Snippet('', '', 'python').lang, 'python')
+        self.assertEquals(Snippet('', '', 'py'    ).lang, 'python')
+        self.assertEquals(Snippet('', '', '.py'   ).lang, 'python')
+        
+        self.assertEquals(Snippet('', '', ''      ).lang, None)
+        self.assertEquals(Snippet('', '', None    ).lang, None)
 
 
 if __name__ == '__main__':
