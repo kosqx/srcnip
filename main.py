@@ -156,11 +156,11 @@ class MainWindow(QDialog):
         self.input.setMinimumWidth(300)
         QObject.connect(self.input, SIGNAL('returnPressed()'), self.on_return)
         
-        self.results = QLabel("")
+        self.outcome = QLabel("")
         
         layout = QVBoxLayout()
         layout.addWidget(self.input)
-        layout.addWidget(self.results)
+        layout.addWidget(self.outcome)
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self.setLayout(layout)
         
@@ -181,6 +181,11 @@ class MainWindow(QDialog):
             create_shortcut("Shift+Ctrl+%d" % i, self.on_delete, i)
             
         create_shortcut("Esc", self.on_escape)
+        
+        create_shortcut("Ctrl+Up",   self.on_page, 'prev')
+        create_shortcut("Ctrl+Down", self.on_page, 'next')
+        create_shortcut("Up",   self.on_page, 'prev')
+        create_shortcut("Down", self.on_page, 'next')
         
         
         # -----------------------------------------------------------
@@ -234,14 +239,14 @@ class MainWindow(QDialog):
         
     def on_copy(self, nr):
         nr = nr - 1;
-        if nr < len(self.result):
-            text = self.result[nr][0]
+        if nr < (len(self.search_results) - 10 * self.search_page):
+            text = self.search_results[10 * self.search_page + nr].code
             QApplication.clipboard().setText(text)
             self.close()
     
     def on_delete(self, nr):
         nr = nr - 1;
-        if nr < len(self.result):
+        if nr < (len(self.search_results) - 10 * self.search_page):
             reply = QMessageBox.question(
                 self,
                 "Snipper - delete snippet",
@@ -250,7 +255,7 @@ class MainWindow(QDialog):
                 QMessageBox.No|QMessageBox.Escape
             )
             if reply:
-                text = self.result[nr][0]
+                text = self.search_results[10 * self.search_page + nr].code
                 self.close()
     
     def on_return(self, *a):
@@ -258,6 +263,20 @@ class MainWindow(QDialog):
         
         result = self.storage.search(query)
         self.set_results(result, query)
+        
+    def on_page(self, where):
+        if where == 'prev':
+            page = self.search_page - 1
+        if where == 'next':
+            page = self.search_page + 1
+        if where == 'first':
+            page = 0
+        if where == 'last':
+            page = 1000000
+        
+        self.search_page = min(max(page, 0), self.search_pages - 1)
+        
+        self.display_page()
     
     def on_escape(self, *a):
         self.set_results([])
@@ -265,9 +284,22 @@ class MainWindow(QDialog):
         self.setVisible(False)
     
     def set_results(self, results, query_tags=[]):
-        self.result = results
+        self.search_results = results
+        self.search_tags = query_tags
+        self.search_page = 0
+        self.search_pages = (len(results) - 1) / 10 + 1
+        
+        self.display_page()
+    
+    def display_page(self):
+        results = self.search_results[self.search_page * 10: self.search_page * 10 + 10]
+        query_tags = self.search_tags
+        
         if results:
-            data = ['<table width="100%" cellspacing="0">']
+            data = []
+            if self.search_pages > 1:
+                data.append('Page %d of %d <br />' % (self.search_page + 1, self.search_pages))
+            data.append('<table width="100%" cellspacing="0">')
             for i, r in enumerate(results):
                 code = format_code(r.code, r.lang)
                 
@@ -288,10 +320,10 @@ class MainWindow(QDialog):
             data.append('</table>')
             text = '\n'.join(data)
             
-            self.results.show()
-            self.results.setText(text)
+            self.outcome.show()
+            self.outcome.setText(text)
         else:
-            self.results.hide()
+            self.outcome.hide()
 
 
 if __name__ == "__main__":
