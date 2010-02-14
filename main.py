@@ -23,6 +23,30 @@ from storage import FileStorage, Snippet
 from languages import languages
 
 
+def format_code(code, lang):
+    MAX_LINES = 5
+    lines = code.splitlines()
+    if len(lines) > MAX_LINES:
+        result = []
+        for line in lines:
+            if line.strip():
+                result.append(line)
+        code = '\n'.join(result[:MAX_LINES])
+    
+    try:
+        lexer = get_lexer_by_name(lang, stripall=True, tabsize=4)
+    except pygments.util.ClassNotFound:
+        lexer = get_lexer_by_name('text', stripall=True, tabsize=4)
+    formatter = HtmlFormatter(linenos=False, noclasses=True)
+    code = highlight(code.rstrip(), lexer, formatter)
+    sufix = '</pre></div>\n'
+    if code.endswith(sufix):
+        code = code[:-len(sufix)].rstrip() + sufix
+    code = code.rstrip()
+    
+    return code
+
+
 def add_combo_items(combo, items):
     combo.clear()
     for item in items:
@@ -245,16 +269,7 @@ class MainWindow(QDialog):
         if results:
             data = ['<table width="100%" cellspacing="0">']
             for i, r in enumerate(results):
-                try:
-                    lexer = get_lexer_by_name(r.lang, stripall=True, tabsize=4)
-                except pygments.util.ClassNotFound:
-                    lexer = get_lexer_by_name('text', stripall=True, tabsize=4)
-                formatter = HtmlFormatter(linenos=False, noclasses=True)
-                code = highlight(r.code.rstrip(), lexer, formatter)
-                sufix = '</pre></div>\n'
-                if code.endswith(sufix):
-                    code = code[:-len(sufix)].rstrip() + sufix
-                code = code.rstrip()
+                code = format_code(r.code, r.lang)
                 
                 tags = []
                 for tag in sorted(list(r.tags)):
@@ -269,7 +284,7 @@ class MainWindow(QDialog):
                 else:
                     lang = ''
                 
-                data.append('<tr style="background-color:%s"><td width="1%%"><div style="font-size:32px; margin: 10px">%d</div></td><td>%s%s%s</td></tr>' % (['#cccccc', '#dddddd'][i % 2], i + 1, code, tags, lang))
+                data.append('<tr style="background-color:%s"><td width="1%%"><div style="font-size:32px; margin: 10px">%s</div></td><td>%s%s%s</td></tr>' % (['#cccccc', '#dddddd'][i % 2], str(i + 1)[-1], code, tags, lang))
             data.append('</table>')
             text = '\n'.join(data)
             
