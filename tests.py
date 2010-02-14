@@ -5,16 +5,13 @@
 import unittest
 
 
-import languages
+from languages import languages
 import storage
 
 
 class LanguagesTestCase(unittest.TestCase):
-    def setUp(self):
-        self.lang = languages.Languages()
-        
     def testGetItemPython(self):
-        py = self.lang['py']
+        py = languages['py']
         self.assertEquals(py.name, 'Python')
         self.assertEquals(py.code, 'python')
         
@@ -24,13 +21,13 @@ class LanguagesTestCase(unittest.TestCase):
         self.assertTrue('.pyw'   in py.codes)
         
     def testGetItemUnexisting(self):
-        def do_get(lang):
-            return lang['unexisting']
+        def do_get():
+            return languages['unexisting']
             
-        self.assertRaises(KeyError, do_get, self.lang)
+        self.assertRaises(KeyError, do_get)
     
     def testNames(self):
-        names = self.lang.get_names()
+        names = languages.get_names()
         
         self.assertTrue('Python' in names)
         self.assertTrue('JavaScript' in names)
@@ -39,7 +36,7 @@ class LanguagesTestCase(unittest.TestCase):
         self.assertFalse('javascript' in names)
     
     def testNamesSort(self):
-        names = self.lang.get_names()
+        names = languages.get_names()
         self.assertEquals(names, sorted(names))
 
 

@@ -20,7 +20,7 @@ import pygments.util
 
 
 from storage import FileStorage
-from languages import Languages
+from languages import languages
 
 
 def add_combo_items(combo, items):
@@ -53,7 +53,7 @@ class AddDialog(QDialog):
         self.tags_label.setBuddy(self.tags_input)
         
         self.lang_combo = QComboBox()
-        add_combo_items(self.lang_combo, ['Text', None] + self.parent.languages.get_names())
+        add_combo_items(self.lang_combo, ['Text', None] + languages.get_names())
         self.lang_label = QLabel("&Language:")
         self.lang_label.setBuddy(self.lang_combo)
         
@@ -108,7 +108,7 @@ class MainWindow(QDialog):
         
         
         self.storage   = FileStorage()
-        self.languages = Languages()
+        #self.languages = Languages()
         
         
         self.setWindowTitle("Snipper clip")

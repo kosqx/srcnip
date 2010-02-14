@@ -6,7 +6,7 @@ import os.path
 import hashlib
 
 
-from languages import Languages
+from languages import languages
 
 
 def to_unicode(string):
@@ -68,7 +68,7 @@ class Storage:
 
 class FileStorage(Storage):
     def __init__(self, location='~/.snipper'):
-        self._languages = Languages()
+        #self._languages = Languages()
         self._data = []
         self._do_location(location)
         
@@ -100,7 +100,7 @@ class FileStorage(Storage):
             if line.startswith('lang:'):
                 lang = line[5:].strip()
                 try:
-                    lang = self._languages[lang].code
+                    lang = languages[lang].code
                 except KeyError:
                     pass
             if line.startswith('tags:'):
@@ -123,7 +123,7 @@ class FileStorage(Storage):
     def add(self, content, tags, lang):
         tags = set(tags)
         try:
-            lang = self._languages[lang].code
+            lang = languages[lang].code
         except KeyError:
             pass
         self._data.append((content, tags, lang))
