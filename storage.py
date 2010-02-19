@@ -4,7 +4,7 @@
 import os
 import os.path
 import hashlib
-
+from datetime import datetime
 
 from languages import languages
 
@@ -65,6 +65,9 @@ class Storage:
         pass
     
     def add(self, snippet):
+        pass
+    
+    def delete(self, snippet):
         pass
     
     def tags_count(self):
@@ -129,7 +132,18 @@ class FileStorage(Storage):
         snippet.id = id
         self._data.append(snippet)
         return id
-
+    
+    def delete(self, snippet):
+        assert snippet.id is not None
+        
+        filename = os.path.join(self._location, snippet.id)
+        os.remove(filename)
+        
+        for i, s in enumerate(self._data):
+            if s.id == snippet.id:
+                del self._data[i]
+                break
+    
     def _write(self, snippet):
         name = hashlib.md5(snippet.code.encode('utf8')).hexdigest()
         
@@ -138,6 +152,7 @@ class FileStorage(Storage):
             data.append(u'lang: %s' % snippet.lang)
         if snippet.tags:
             data.append(u'tags: %s' % ' '.join(sorted(list(snippet.tags))))
+        data.append(u'date: %s' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         data.append(u'----')
         data.append(snippet.code)
         data = u'\n'.join(data)

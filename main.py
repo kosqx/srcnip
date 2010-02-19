@@ -247,15 +247,18 @@ class MainWindow(QDialog):
     def on_delete(self, nr):
         nr = nr - 1;
         if nr < (len(self.search_results) - 10 * self.search_page):
+            snippet = self.search_results[10 * self.search_page + nr]
+            
             reply = QMessageBox.question(
                 self,
                 "Snipper - delete snippet",
-                "Delete snippet?",
+                "Delete this snippet?" + format_code(snippet.code, snippet.lang),
                 QMessageBox.Yes|QMessageBox.Default,
                 QMessageBox.No|QMessageBox.Escape
             )
             if reply:
-                text = self.search_results[10 * self.search_page + nr].code
+                
+                self.storage.delete(snippet)
                 self.close()
     
     def on_return(self, *a):
