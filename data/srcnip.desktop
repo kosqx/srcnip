@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=srcnip
+GenericName=Source code snippets
+Comment=Source code snippets
+Comment[de]=Source code snippets
+Exec=srcnip
+Icon=srcnip
+Terminal=false
+Type=Application
+Categories=Development;Documentation;
+StartupNotify=true

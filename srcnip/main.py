@@ -67,6 +67,9 @@ def popular_list(popular_dict):
         tmp.append(None)
     return tmp
 
+def icon_path(name='srcnip.png'):
+    return '/usr/share/srcnip/' + name
+
 
 class AddDialog(QDialog):
     def __init__(self, parent=None):
@@ -146,7 +149,7 @@ class MainWindow(QDialog):
         #self.languages = Languages()
         
         
-        self.setWindowTitle("Snipper clip")
+        self.setWindowTitle("Find snippet")
         self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         
         
@@ -191,7 +194,7 @@ class MainWindow(QDialog):
         # -----------------------------------------------------------
         # Systray and global shortcuts
         self.systray = KSystemTrayIcon(self)
-        self.systray.setIcon(QIcon('icon.png'))
+        self.systray.setIcon(QIcon(icon_path()))
         self.systray.show()
         
         def add_action(systray, id, text, icon, shortcut, slot):
@@ -207,8 +210,8 @@ class MainWindow(QDialog):
             menu = systray.contextMenu()
             menu.addAction(action)
             
-        add_action(self.systray, 'find-snippet', "Find snippet", QIcon('icon.png'), 'Ctrl+Alt+B', self.on_toogle)
-        add_action(self.systray, 'add-snippet',  "Add snippet",  QIcon('icon.png'), 'Ctrl+Alt+N', self.on_add)
+        add_action(self.systray, 'find-snippet', "Find snippet", QIcon(icon_path()), 'Ctrl+Alt+B', self.on_toogle)
+        add_action(self.systray, 'add-snippet',  "Add snippet",  QIcon(icon_path()), 'Ctrl+Alt+N', self.on_add)
         
         
         self.add_dialog = AddDialog(self)
@@ -251,7 +254,7 @@ class MainWindow(QDialog):
             
             reply = QMessageBox.question(
                 self,
-                "Snipper - delete snippet",
+                "Delete snippet",
                 "Delete this snippet?" + format_code(snippet.code, snippet.lang),
                 QMessageBox.Yes|QMessageBox.Default,
                 QMessageBox.No|QMessageBox.Escape
@@ -329,9 +332,9 @@ class MainWindow(QDialog):
             self.outcome.hide()
 
 
-if __name__ == "__main__":
+def main():
     aboutData = KAboutData (
-        "snipper", "", ki18n("Code Snipper"), "0.2", ki18n("Easy acces to code snippets"),
+        "snipper", "", ki18n("srcnip"), "0.2", ki18n("Easy acces to code snippets"),
         KAboutData.License_GPL, ki18n("(c) 2008 Krzysztof Kosyl"),
         ki18n("none"), "www.examlpe.com", ''
     )
@@ -340,4 +343,7 @@ if __name__ == "__main__":
     
     main_window = MainWindow()
     sys.exit(app.exec_())
+    
+if __name__ == "__main__":
+    main()
 

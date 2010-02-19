@@ -5,8 +5,8 @@
 import unittest
 
 
-from languages import languages
-from storage import Snippet
+from srcnip.languages import languages
+from srcnip.storage import Snippet
 
 
 class LanguagesTestCase(unittest.TestCase):

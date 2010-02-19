@@ -78,7 +78,7 @@ class Storage:
 
 
 class FileStorage(Storage):
-    def __init__(self, location='~/.snipper'):
+    def __init__(self, location='~/.srcnip'):
         self._data = []
         self._do_location(location)
         
