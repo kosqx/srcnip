@@ -12,6 +12,7 @@ Requirements
 - KDE 4
 - PyKDE 4
 - Pygments 0.9
+- PLY 3.3
 
 
 Installation

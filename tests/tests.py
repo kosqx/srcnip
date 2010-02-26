@@ -7,6 +7,7 @@ import unittest
 
 from srcnip.languages import languages
 from srcnip.storage import Snippet
+from srcnip.parser import parse, simplify, ParseError, LexerError, SyntaxError
 
 
 class LanguagesTestCase(unittest.TestCase):
@@ -85,6 +86,54 @@ class SnippetTestCase(unittest.TestCase):
         
         self.assertEquals(Snippet('', '', ''      ).lang, None)
         self.assertEquals(Snippet('', '', None    ).lang, None)
+
+
+class ParserTestCase(unittest.TestCase):
+    # TODO: more test: exceptions, more complex expresons
+    def testAtom(self):
+        self.assertEquals(parse('foo'),                        ('tag', 'foo'))
+        self.assertEquals(parse('*oo'),                        ('ltag', 'oo'))
+        self.assertEquals(parse('fo*'),                        ('rtag', 'fo'))
+        self.assertEquals(parse('*o*'),                        ('btag', 'o'))
+        self.assertEquals(parse('"foo"'),                      ('text', 'foo'))
+        self.assertEquals(parse('"foo\\"bar\\"baz"'),          ('text', 'foo"bar"baz'))
+        self.assertEquals(parse('/foo/'),                      ('regexp', 'foo'))
+        self.assertEquals(parse('/foo\\/bar/'),                ('regexp', 'foo/bar'))
+        self.assertEquals(parse('.foo'),                       ('ext', '.foo'))
+        self.assertEquals(parse('foo:bar'),                    ('foo', 'bar'))
+    
+    def testSpace(self):
+        self.assertEquals(parse('foo'),                        ('tag', 'foo'))
+        self.assertEquals(parse('\t \tfoo'),                   ('tag', 'foo'))
+        self.assertEquals(parse('foo  \t'),                    ('tag', 'foo'))
+        self.assertEquals(parse(' \tfoo\t '),                  ('tag', 'foo'))
+    
+    def testNot(self):
+        self.assertEquals(parse('!foo'),                       ('not', ('tag', 'foo')))
+        self.assertEquals(parse('NOT foo'),                    ('not', ('tag', 'foo')))
+        self.assertEquals(parse('!NOT foo'),                   ('not', ('not', ('tag', 'foo'))))
+    
+    def testAnd(self):
+        self.assertEquals(parse('foo.bar'),                    ('and', ('tag', 'foo'), ('ext', '.bar')))
+        self.assertEquals(parse('foo bar'),                    ('and', ('tag', 'foo'), ('tag', 'bar')))
+        self.assertEquals(parse('foo bar baz'),                ('and', ('tag', 'foo'), ('tag', 'bar'), ('tag', 'baz')))
+        self.assertEquals(parse('a b c d'),                    ('and', ('tag', 'a'), ('tag', 'b'), ('tag', 'c'), ('tag', 'd')))
+        self.assertEquals(parse('a AND b & c && d'),           ('and', ('tag', 'a'), ('tag', 'b'), ('tag', 'c'), ('tag', 'd')))
+        self.assertEquals(parse('a OR b | c || d'),            ('or', ('tag', 'a'), ('tag', 'b'), ('tag', 'c'), ('tag', 'd')))
+    
+    def testOr(self):
+        self.assertEquals(parse('a b OR c d'),                 ('or', ('and', ('tag', 'a'), ('tag', 'b')), ('and', ('tag', 'c'), ('tag', 'd'))))
+        self.assertEquals(parse('a b | c d'),                  ('or', ('and', ('tag', 'a'), ('tag', 'b')), ('and', ('tag', 'c'), ('tag', 'd'))))
+        self.assertEquals(parse('a b || c d'),                 ('or', ('and', ('tag', 'a'), ('tag', 'b')), ('and', ('tag', 'c'), ('tag', 'd'))))
+        self.assertEquals(parse('a b ||| c d'),                ('or', ('and', ('tag', 'a'), ('tag', 'b')), ('and', ('tag', 'c'), ('tag', 'd'))))
+    
+    def testParens(self):
+        self.assertEquals(parse('(a) (b) (c) (d)'),            ('and', ('tag', 'a'), ('tag', 'b'), ('tag', 'c'), ('tag', 'd')))
+        self.assertEquals(parse('(a b c d)'),                  ('and', ('tag', 'a'), ('tag', 'b'), ('tag', 'c'), ('tag', 'd')))
+        self.assertEquals(parse('(a b)  (c d)'),               ('and', ('and', ('tag', 'a'), ('tag', 'b')), ('and', ('tag', 'c'), ('tag', 'd'))))
+        self.assertEquals(parse('(a b | c) d'),                ('and', ('or', ('and', ('tag', 'a'), ('tag', 'b')), ('tag', 'c')), ('tag', 'd')))
+        self.assertEquals(parse('a (b | c) d'),                ('and', ('tag', 'a'), ('or', ('tag', 'b'), ('tag', 'c')), ('tag', 'd')))
+        self.assertEquals(parse('a (b | c d)'),                ('and', ('tag', 'a'), ('or', ('tag', 'b'), ('and', ('tag', 'c'), ('tag', 'd')))))
 
 
 if __name__ == '__main__':
