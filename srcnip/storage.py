@@ -3,6 +3,7 @@
 
 import os
 import os.path
+import re
 import hashlib
 from datetime import datetime
 
@@ -36,32 +37,39 @@ class Snippet(object):
             self.lang = None
 
 
-def parse_query(query):
-    SHORT = {
-        'l':        'lang',
-        'lang':     'lang',
-        'language': 'lang',
-        'a':        'age',
-        'age':      'age',
-    }
+def snipet_match_query(snippet, query):
+    if query[0] == 'tag':
+        return query[1] in snippet.tags
+    if query[0] == 'ltag':
+        return any(tag.endswith(query[1]) for tag in snippet.tags)
+    if query[0] == 'rtag':
+        return any(tag.startswith(query[1]) for tag in snippet.tags)
+    if query[0] == 'btag':
+        return any(query[1] in tag for tag in snippet.tags)
+        
+    if query[0] == 'lang':
+        return snippet.lang == languages[query[1]].code
+    if query[0] == 'ext':
+        return snippet.lang == languages[query[1]].code
     
-    result = {'tags': set()}
+    if query[0] == 'text':
+        return query[1] in snippet.code
+    if query[0] == 'regexp':
+        return re.search(query[1], snippet.code)
     
-    parts = query.split()
-    for part in parts:
-        if ':' in part:
-            tmp = part.split(':', 1)
-            if tmp[0] in SHORT:
-                result[SHORT[tmp[0]]] = tmp[1]
-        else:
-            result['tags'].add(part)
-    
+    if query[0] == 'not':
+        return not snipet_match_query(snippet, query[1])
+    if query[0] == 'and':
+        return all(snipet_match_query(snippet, i) for i in query[1:])
+    if query[0] == 'or':
+        return any(snipet_match_query(snippet, i) for i in query[1:])
+
 
 class Storage:
     def __init__(self, location):
         pass
     
-    def search(self, tags, lang):
+    def search(self, query):
         pass
     
     def add(self, snippet):
@@ -118,11 +126,10 @@ class FileStorage(Storage):
         
         return Snippet(code, tags, lang, id)
     
-    def search(self, tags=[], lang=None):
-        tags = set(tags)
+    def search(self, query):
         result = []
         for item in self._data:
-            if item.tags.issuperset(tags) and (item.lang == lang or lang is None):
+            if snipet_match_query(item, query):
                 result.append(item)
         
         return result

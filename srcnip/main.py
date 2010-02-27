@@ -21,6 +21,7 @@ import pygments.util
 
 from storage import FileStorage, Snippet
 from languages import languages
+from parser import parse
 
 
 def format_code(code, lang):
@@ -265,11 +266,12 @@ class MainWindow(QDialog):
                 self.close()
     
     def on_return(self, *a):
-        query = unicode(self.input.text()).encode('utf-8').split()
+        query_str = unicode(self.input.text())
+        query_ast = parse(query_str)
         
-        result = self.storage.search(query)
-        self.set_results(result, query)
-        
+        result = self.storage.search(query_ast)
+        self.set_results(result)
+    
     def on_page(self, where):
         if where == 'prev':
             page = self.search_page - 1
