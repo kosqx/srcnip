@@ -1,6 +1,24 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
+"""
+Copyright (C) 2010 Krzysztof Kosyl <krzysztof.kosyl@gmail.com>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+"""
+
 
 class Language(object):
     def __init__(self, data):
@@ -41,15 +59,17 @@ class Languages(object):
 
 languages_list = [
     ## LLVM assembly, Cython
-    ('AppleScript',         'applescript', '.applescript'),
     ('AWK',                 'awk'),
     ('ActionScript',        'actionscript', 'as', '.as'),
+    ('ActionScript 3',      'actionscript3', 'as3'),
+    ('Apache',              'apache', '.htaccess'),
+    ('AppleScript',         'applescript', '.applescript'),
     ('Ada',                 'ada'),
     ('Assembler::Intel',    'nasm', 'asm', '.asm'),
     ('Assembler::AT&T',     'gas', 's', '.s'),
     ('Boo',                 'boo', '.boo'),
     ('Bash',                'bash', 'sh', '.sh'),
-    ('Batch',               'batch', 'bat', '.bat', '.cmd'),
+    ('Batch DOS',           'batch', 'bat', '.bat', '.cmd'),
     ('C',                   'c', '.c', '.h'),
     ('C#',                  'c#', 'csharp', '.cs'),
     ('C++',                 'c++', 'cpp', '.cpp', '.hpp', '.c++', '.h++', '.cc', '.hh', '.cxx', '.hxx'),
@@ -60,8 +80,7 @@ languages_list = [
     ('Common Lisp',         'common-lisp', 'cl', '.cl', '.lisp', '.el'),
     ('D',                   'd', '.d', '.di'),
     ('Delphi',              'delphi'),
-    ('Delphi Prism',        'delphi-prism'),
-    ('Delphi.NET',          'delphi.net'),
+    ('Diff',                'diff', 'patch', '.diff', '.patch'),
     ('Dylan',               'dylan', '.dylan'),
     ('Eiffel',              'eiffel'),
     ('Erlang',              'erlang', 'erl', '.erl', '.hrl'),
@@ -70,6 +89,7 @@ languages_list = [
     ('Fortran',             'fortran', '.f', '.f90'),
     ('Gettext',             'gettext', 'pot', 'po', '.pot', '.po'),
     ('GLSL',                'glsl', '.vert', '.frag', '.geo'),
+    ('Groovy',              'groovy', '.groovy'),
     ('Go',                  'go', '.go'),
     ('Haskell',             'haskell', 	'hs', '.hs'),
     ('HTML',                'html', '.html', '.htm', '.xhtml'),
