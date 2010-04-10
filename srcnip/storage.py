@@ -104,43 +104,31 @@ def compare(query, date):
     
     
 
-def snipet_match_query(snippet, query):
-    if query[0] == 'none':
-        return False
-    if query[0] == 'all':
-        return True
-    
-    if query[0] == 'tag':
-        return query[1] in snippet.tags
-    if query[0] == 'ltag':
-        return any(tag.endswith(query[1]) for tag in snippet.tags)
-    if query[0] == 'rtag':
-        return any(tag.startswith(query[1]) for tag in snippet.tags)
-    if query[0] == 'btag':
-        return any(query[1] in tag for tag in snippet.tags)
-    
-    if query[0] == 'lang':
-        return snippet.lang == languages[query[1]].code
-    if query[0] == 'ext':
-        return snippet.lang == languages[query[1]].code
-    
-    if query[0] == 'text':
-        return query[1] in snippet.code
-    if query[0] == 'regexp':
-        return re.search(query[1], snippet.code)
+def snippet_match_query(snippet, query):
+    FN = {
+        'none':    lambda p: False,
+        'all':     lambda p: True,
         
-    if query[0] == 'older':
-        return compare(query[1], snippet.date) == 'older'
+        'tag':     lambda p: p[0] in snippet.tags,
+        'ltag':    lambda p: any(tag.endswith(p[0])   for tag in snippet.tags),
+        'rtag':    lambda p: any(tag.startswith(p[0]) for tag in snippet.tags),
+        'btag':    lambda p: any(p[0] in tag          for tag in snippet.tags),
         
-    if query[0] == 'newer':
-        return compare(query[1], snippet.date) == 'newer'
+        'lang':    lambda p: snippet.lang == languages[p[0]].code,
+        'ext':     lambda p: snippet.lang == languages[p[0]].code,
+        
+        'text':    lambda p: p[0] in snippet.code,
+        'regexp':  lambda p: re.search(p[0], snippet.code),
+        
+        'older':   lambda p: compare(p[0], snippet.date) == 'older',
+        'newer':   lambda p: compare(p[0], snippet.date) == 'newer',
+        
+        'not':     lambda p: not snippet_match_query(snippet, p[0]),
+        'and':     lambda p: all(snippet_match_query(snippet, i) for i in p),
+        'or':      lambda p: any(snippet_match_query(snippet, i) for i in p),
+    }
     
-    if query[0] == 'not':
-        return not snipet_match_query(snippet, query[1])
-    if query[0] == 'and':
-        return all(snipet_match_query(snippet, i) for i in query[1:])
-    if query[0] == 'or':
-        return any(snipet_match_query(snippet, i) for i in query[1:])
+    return FN.get(query[0], lambda p: False)(query[1:])
 
 
 class Storage(object):
@@ -171,7 +159,7 @@ class MemoryStorage(Storage):
     def search(self, query):
         result = []
         for item in self._data:
-            if snipet_match_query(item, query):
+            if snippet_match_query(item, query):
                 result.append(item)
         
         return result
