@@ -40,10 +40,11 @@ def to_unicode(string):
 
 
 class Snippet(object):
-    def __init__(self, code, tags, lang, id=None):
+    def __init__(self, code, tags, lang, id=None, date=None):
         super(Snippet, self).__init__()
         
         self.id = id
+        self.date = date
         self.code = to_unicode(code)
         
         if isinstance(tags, basestring):
@@ -57,7 +58,58 @@ class Snippet(object):
             self.lang = None
 
 
+def parse_timediff(text):
+    SUFIXES = [
+        ('s', 1),
+        ('m', 60),
+        ('h', 60 * 60),
+        ('d', 60 * 60 * 24),
+        ('w', 60 * 60 * 24 * 7),
+        ('m', 60 * 60 * 24 * 30),
+        ('y', 60 * 60 * 24 * 365),
+    ]
+    
+    text = text.lower()
+    
+    multiply = 60 * 60 * 24
+    for sufix, mul in SUFIXES:
+        if text.endswith(sufix):
+            multiply = mul
+            text = text[:-len(sufix)]
+            break
+    
+    try:
+        return float(text) * multiply
+    except ValueError:
+        return None
+
+def compare(query, date):
+    
+    if date == None:
+        return ''
+    print query, date
+    requested = parse_timediff(query)
+    if requested == None:
+        return ''
+    current = datetime.now() - date
+    current = current.days * 24 * 60 * 60 + current.seconds
+    
+    print current, requested 
+    if current >= requested:
+        print 'old'
+        return 'older'
+    else:
+        print 'new'
+        return 'newer'
+    
+    
+
 def snipet_match_query(snippet, query):
+    if query[0] == 'none':
+        return False
+    if query[0] == 'all':
+        return True
+    
     if query[0] == 'tag':
         return query[1] in snippet.tags
     if query[0] == 'ltag':
@@ -66,7 +118,7 @@ def snipet_match_query(snippet, query):
         return any(tag.startswith(query[1]) for tag in snippet.tags)
     if query[0] == 'btag':
         return any(query[1] in tag for tag in snippet.tags)
-        
+    
     if query[0] == 'lang':
         return snippet.lang == languages[query[1]].code
     if query[0] == 'ext':
@@ -76,6 +128,12 @@ def snipet_match_query(snippet, query):
         return query[1] in snippet.code
     if query[0] == 'regexp':
         return re.search(query[1], snippet.code)
+        
+    if query[0] == 'older':
+        return compare(query[1], snippet.date) == 'older'
+        
+    if query[0] == 'newer':
+        return compare(query[1], snippet.date) == 'newer'
     
     if query[0] == 'not':
         return not snipet_match_query(snippet, query[1])
@@ -161,17 +219,20 @@ class MemoryStorage(Storage):
         code = ''
         tags = set()
         lang = None
+        date = None
         
         for i, line in enumerate(lines):
             if line.startswith('lang:'):
                 lang = line[5:].strip()
             if line.startswith('tags:'):
                 tags = set(line[5:].strip().split())
+            if line.startswith('date:'):
+                date = datetime.strptime(line[5:].strip(), '%Y-%m-%d %H:%M:%S')
             if line.startswith('----'):
                 code = '\n'.join(lines[i + 1:])
                 break
         
-        return Snippet(code, tags, lang, id)
+        return Snippet(code, tags, lang, id, date)
     
     def _format(self, snippet):
         id = hashlib.md5(snippet.code.encode('utf8')).hexdigest()

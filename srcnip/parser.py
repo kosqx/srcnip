@@ -37,7 +37,7 @@ class SyntaxError(ParseError):
 
 tokens = [
     #'NAMED',
-    'EXT', 'TAG', 'LTAG', 'RTAG', 'BTAG', 'REGEXP', 'TEXT', 
+    'EXT', 'TAG', 'LTAG', 'RTAG', 'BTAG', 'REGEXP', 'TEXT', 'ALL',
     'OR','AND', 'NOT', 'COLON',
     'LPAREN','RPAREN',
 ]
@@ -49,6 +49,7 @@ t_OR      = r'\|+|OR'
 t_COLON   = r':'
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
+t_ALL     = r'\*'
 t_EXT     = r'\.[a-zA-Z_0-9]+'
 
 
@@ -181,6 +182,11 @@ def p_term_named(t):
 def p_term_ext(t):
     'term : EXT'
     t[0] = ('ext', t[1])
+    
+def p_term_all(t):
+    'term : ALL'
+    t[0] = ('all', )
+
 
 
 def p_error(t):
@@ -201,8 +207,11 @@ def simplify(ast):
 
 
 def parse(query):
-    ast = parser.parse(query)
-    return simplify(ast)
+    if query.strip() == '':
+        return ('none', )
+    else:
+        ast = parser.parse(query)
+        return simplify(ast)
 
 
 if __name__ == '__main__':

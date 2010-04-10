@@ -7,7 +7,7 @@ import unittest
 
 
 from srcnip.languages import languages
-from srcnip.storage import Snippet, MemoryStorage
+from srcnip.storage import Snippet, MemoryStorage, parse_timediff
 from srcnip.parser import parse, simplify, ParseError, LexerError, SyntaxError
 
 
@@ -92,6 +92,9 @@ class SnippetTestCase(unittest.TestCase):
 class ParserTestCase(unittest.TestCase):
     # TODO: more test: exceptions, more complex expresons
     def testAtom(self):
+        self.assertEquals(parse('*'),                          ('all', ))
+        self.assertEquals(parse(' '),                          ('none', ))
+        
         self.assertEquals(parse('foo'),                        ('tag', 'foo'))
         self.assertEquals(parse('*oo'),                        ('ltag', 'oo'))
         self.assertEquals(parse('fo*'),                        ('rtag', 'fo'))
@@ -148,17 +151,38 @@ def random_snippet():
     
     return Snippet(code, tags, lang)
 
+
+class UtilsTestCase(unittest.TestCase):
+    def testParseTimediff(self):
+        self.assertEquals(parse_timediff('123s'),  123.0)
+        self.assertEquals(parse_timediff('12m'),   720.0)
+        self.assertEquals(parse_timediff('1h'),    3600.0)
+        
+        self.assertEquals(parse_timediff('12.3s'), 12.3)
+        self.assertEquals(parse_timediff('1.2m'),  72.0)
+        self.assertEquals(parse_timediff('.1h'),   360.0)
+        
+        self.assertEquals(parse_timediff('0'),     0)
+        self.assertEquals(parse_timediff('1'),     60 * 60 * 24.0)
+        
+        self.assertEquals(parse_timediff('s1'),    None)
+        self.assertEquals(parse_timediff('1x'),    None)
+        self.assertEquals(parse_timediff(''),      None)
+        self.assertEquals(parse_timediff('foo'),   None)
+
+
 class StorageTestCase(unittest.TestCase):
     def setUp(self):
         self.storage = MemoryStorage()
     
     def testAttr(self):
-        for i in xrange(10000):
+        for i in xrange(100):
             random_snippet()
             #self.storage.save(random_snippet())
     
     def testAttr2(self):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
