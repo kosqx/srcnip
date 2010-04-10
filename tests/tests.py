@@ -2,11 +2,12 @@
 #-*- coding: utf-8 -*-
 
 
+import random
 import unittest
 
 
 from srcnip.languages import languages
-from srcnip.storage import Snippet
+from srcnip.storage import Snippet, MemoryStorage
 from srcnip.parser import parse, simplify, ParseError, LexerError, SyntaxError
 
 
@@ -135,6 +136,29 @@ class ParserTestCase(unittest.TestCase):
         self.assertEquals(parse('a (b | c) d'),                ('and', ('tag', 'a'), ('or', ('tag', 'b'), ('tag', 'c')), ('tag', 'd')))
         self.assertEquals(parse('a (b | c d)'),                ('and', ('tag', 'a'), ('or', ('tag', 'b'), ('and', ('tag', 'c'), ('tag', 'd')))))
 
+
+def random_snippet():
+    atags = 'foo bar baz code block function start setup'.split()
+    langs = 'c cpp java python js ruby html'.split()
+    words = 'self this assert ( ) [ ] . -> # + - * / ^ && || < <= >= > if for while'.split() + ['\n', '\t', ' ']
+    
+    lang = random.choice(langs)
+    tags = [random.choice(atags) for i in xrange(random.randint(0, 4))]
+    code = ' '.join([random.choice(atags) for i in xrange(random.randint(10, 100))])
+    
+    return Snippet(code, tags, lang)
+
+class StorageTestCase(unittest.TestCase):
+    def setUp(self):
+        self.storage = MemoryStorage()
+    
+    def testAttr(self):
+        for i in xrange(10000):
+            random_snippet()
+            #self.storage.save(random_snippet())
+    
+    def testAttr2(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

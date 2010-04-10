@@ -85,14 +85,14 @@ def snipet_match_query(snippet, query):
         return any(snipet_match_query(snippet, i) for i in query[1:])
 
 
-class Storage:
-    def __init__(self, location):
-        pass
+class Storage(object):
+    def __init__(self):
+        super(Storage, self).__init__()
     
     def search(self, query):
         pass
     
-    def add(self, snippet):
+    def save(self, snippet):
         pass
     
     def delete(self, snippet):
@@ -105,9 +105,93 @@ class Storage:
         pass
 
 
-class FileStorage(Storage):
-    def __init__(self, location='~/.srcnip'):
+class MemoryStorage(Storage):
+    def __init__(self):
+        super(MemoryStorage, self).__init__()
         self._data = []
+    
+    def search(self, query):
+        result = []
+        for item in self._data:
+            if snipet_match_query(item, query):
+                result.append(item)
+        
+        return result
+    
+    def save(self, snippet):
+        id = self._do_save(snippet)
+        
+        snippet.id = id
+        self._data.append(snippet)
+        return id
+    
+    def delete(self, snippet):
+        assert snippet.id is not None
+        
+        self._do_delete(snippet)
+        
+        for i, s in enumerate(self._data):
+            if s.id == snippet.id:
+                del self._data[i]
+                break
+        
+        
+    def tags_count(self):
+        result = {}
+        for item in self._data:
+            for tag in item.tags:
+                result[tag] = result.get(tag, 0) + 1
+        return result
+    
+    def lang_count(self):
+        result = {}
+        for item in self._data:
+            result[item.lang] = result.get(item.lang, 0) + 1
+        return result
+    
+    def _do_save(self, snippet):
+        data, id = self._format(snippet)
+        return id
+    
+    def _do_delete(self, snippet):
+        pass
+    
+    def _parse(self, data, id=None):
+        lines = data.splitlines()
+        code = ''
+        tags = set()
+        lang = None
+        
+        for i, line in enumerate(lines):
+            if line.startswith('lang:'):
+                lang = line[5:].strip()
+            if line.startswith('tags:'):
+                tags = set(line[5:].strip().split())
+            if line.startswith('----'):
+                code = '\n'.join(lines[i + 1:])
+                break
+        
+        return Snippet(code, tags, lang, id)
+    
+    def _format(self, snippet):
+        id = hashlib.md5(snippet.code.encode('utf8')).hexdigest()
+        
+        data = []
+        if snippet.lang:
+            data.append(u'lang: %s' % snippet.lang)
+        if snippet.tags:
+            data.append(u'tags: %s' % ' '.join(sorted(list(snippet.tags))))
+        data.append(u'date: %s' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        data.append(u'----')
+        data.append(snippet.code)
+        data = u'\n'.join(data)
+        
+        return data, id
+
+class FileStorage(MemoryStorage):
+    def __init__(self, location='~/.srcnip/file'):
+        super(FileStorage, self).__init__()
+        
         self._do_location(location)
         
         for name in os.listdir(self._location):
@@ -124,77 +208,29 @@ class FileStorage(Storage):
             os.makedirs(location)
         
         self._location = location
+
     
     def _read(self, filename):
         f = open(filename)
-        lines = unicode(f.read(), 'utf8').splitlines()
+        data = unicode(f.read(), 'utf8')
         f.close()
         
-        id = os.path.basename(filename)
-        code = ''
-        tags = set()
-        lang = None
+        return self._parse(data, os.path.basename(filename))
         
-        for i, line in enumerate(lines):
-            if line.startswith('lang:'):
-                lang = line[5:].strip()
-            if line.startswith('tags:'):
-                tags = set(line[5:].strip().split())
-            if line.startswith('----'):
-                code = '\n'.join(lines[i + 1:])
-                break
-        
-        return Snippet(code, tags, lang, id)
     
-    def search(self, query):
-        result = []
-        for item in self._data:
-            if snipet_match_query(item, query):
-                result.append(item)
+    def _do_save(self, snippet):
+        data, id = self._format(snippet)
         
-        return result
-    
-    def add(self, snippet):
-        id = self._write(snippet)
-        snippet.id = id
-        self._data.append(snippet)
-        return id
-    
-    def delete(self, snippet):
-        assert snippet.id is not None
-        
-        filename = os.path.join(self._location, snippet.id)
-        os.remove(filename)
-        
-        for i, s in enumerate(self._data):
-            if s.id == snippet.id:
-                del self._data[i]
-                break
-    
-    def _write(self, snippet):
-        name = hashlib.md5(snippet.code.encode('utf8')).hexdigest()
-        
-        data = []
-        if snippet.lang:
-            data.append(u'lang: %s' % snippet.lang)
-        if snippet.tags:
-            data.append(u'tags: %s' % ' '.join(sorted(list(snippet.tags))))
-        data.append(u'date: %s' % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        data.append(u'----')
-        data.append(snippet.code)
-        data = u'\n'.join(data)
-        
-        f = open(os.path.join(self._location, name), 'w')
+        f = open(os.path.join(self._location, id), 'w')
         f.write(data.encode('utf8'))
         f.close()
         
-        return name
+        return id
+    
+    def _do_delete(self, snippet):
+        filename = os.path.join(self._location, snippet.id)
+        os.remove(filename)
 
-    def lang_count(self):
-        result = {}
-        
-        for item in self._data:
-            result[item.lang] = result.get(item.lang, 0) + 1
-        
-        return result
+
+
 

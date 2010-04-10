@@ -143,7 +143,7 @@ class AddDialog(QDialog):
         tags = unicode(self.tags_input.text())
         lang = unicode(self.lang_combo.currentText())
         
-        self.parent.storage.add(Snippet(code, tags, lang))
+        self.parent.storage.save(Snippet(code, tags, lang))
     
     def closeEvent(self, event):
         self.reject()
@@ -221,9 +221,9 @@ class MainWindow(QDialog):
             action.setText(text)
             action.setIcon(icon)
             if shortcut:
-                shortcut =  KShortcut(shortcut)
-                action.setShortcut(shortcut)
-                action.setGlobalShortcut(shortcut)
+                ashortcut =  KShortcut(shortcut)
+                action.setShortcut(ashortcut)
+                action.setGlobalShortcut(ashortcut)
             self.connect(action, SIGNAL("triggered()"), slot)
             
             menu = systray.contextMenu()
