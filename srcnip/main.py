@@ -240,9 +240,6 @@ class MainWindow(QDialog):
         self.setVisible(False)
         event.ignore()
     
-    def on_exit(self):
-        exit(0)
-    
     def on_systray(self, reason):
         # QSystemTrayIcon.DoubleClick
         if reason == QSystemTrayIcon.Trigger:
@@ -359,6 +356,14 @@ class MainWindow(QDialog):
             self.outcome.hide()
 
 
+# from guidance-power-manager.py:
+# the old "not destroying KApplication last"
+# make a real main(), and make app global. app will then be the last thing deleted (C++)
+def do_main():
+    main_window = MainWindow()
+    sys.exit(app.exec_())
+
+
 def main():
     aboutData = KAboutData(
         'srcnip', 'srcnip', ki18n('srcnip'), '0.2', ki18n('Easy acces to code snippets'),
@@ -366,10 +371,12 @@ def main():
         ki18n(''), 'http://github.com/kosqx/srcnip/', 'krzysztof.kosyl@gmail.com'
     )
     KCmdLineArgs.init(sys.argv, aboutData)
+    
+    global app
     app = KApplication()
     
-    main_window = MainWindow()
-    sys.exit(app.exec_())
+    do_main()
+
     
 if __name__ == "__main__":
     main()
