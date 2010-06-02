@@ -8,7 +8,7 @@ import unittest
 
 from srcnip.languages import languages
 from srcnip.storage import Snippet, MemoryStorage, parse_timediff
-from srcnip.parser import parse, simplify, ParseError, LexerError, SyntaxError
+from srcnip.parser import parse, simplify, parse_tags, ParseError, LexerError, SyntaxError
 
 
 class LanguagesTestCase(unittest.TestCase):
@@ -138,6 +138,20 @@ class ParserTestCase(unittest.TestCase):
         self.assertEquals(parse('(a b | c) d'),                ('and', ('or', ('and', ('tag', 'a'), ('tag', 'b')), ('tag', 'c')), ('tag', 'd')))
         self.assertEquals(parse('a (b | c) d'),                ('and', ('tag', 'a'), ('or', ('tag', 'b'), ('tag', 'c')), ('tag', 'd')))
         self.assertEquals(parse('a (b | c d)'),                ('and', ('tag', 'a'), ('or', ('tag', 'b'), ('and', ('tag', 'c'), ('tag', 'd')))))
+        
+    def testParseTags(self):
+        self.assertEquals(parse_tags('a b c'),                 (set(['a', 'b', 'c']),       None))
+        self.assertEquals(parse_tags('foo bar'),               (set(['foo', 'bar']),        None))
+        self.assertEquals(parse_tags('foo, bar; baz'),         (set(['foo', 'bar', 'baz']), None))
+        self.assertEquals(parse_tags('foo#bar$baz'),           (set(['foo', 'bar', 'baz']), None))
+        
+        self.assertEquals(parse_tags('foo bar .baz'),          (set(['foo', 'bar']),        '.baz'))
+        self.assertEquals(parse_tags('foo bar lang:.baz'),     (set(['foo', 'bar']),        '.baz'))
+        self.assertEquals(parse_tags('foo bar lang:baz'),      (set(['foo', 'bar']),        'baz'))
+        
+        self.assertEquals(parse_tags('foo .bar .baz'),         (set(['foo']),               '.baz'))
+        self.assertEquals(parse_tags('foo.bar.baz'),           (set(['foo']),               '.baz'))
+        self.assertEquals(parse_tags('foo .bar baz'),          (set(['foo', 'baz']),        '.bar'))
 
 
 def random_snippet():

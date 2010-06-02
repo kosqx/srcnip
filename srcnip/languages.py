@@ -51,7 +51,7 @@ class Languages(object):
         if key is None:
             return False
         else:
-            return key.lower() in  self._dict
+            return key.lower() in self._dict
     
     def get_names(self):
         return [row[0] for row in self._list]

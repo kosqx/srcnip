@@ -20,6 +20,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
 
+import re
+
+
 import ply.lex
 import ply.yacc
 
@@ -212,6 +215,22 @@ def parse(query):
     else:
         ast = parser.parse(query)
         return simplify(ast)
+
+
+def parse_tags(tags_str):
+    tags = set()
+    lang = None
+    
+    parts = re.split('((?:lang:)?\.?[a-zA-Z_0-9_-]+)', tags_str)[1::2]
+    for part in parts:
+        if part.startswith('lang:'):
+            lang = part[5:].lower()
+        elif part.startswith('.'):
+            lang = part.lower()
+        else:
+            tags.add(part)
+    
+    return tags, lang
 
 
 if __name__ == '__main__':

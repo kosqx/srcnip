@@ -39,7 +39,7 @@ import pygments.util
 
 from storage import FileStorage, Snippet
 from languages import languages
-from parser import parse, ParseError
+from parser import parse, parse_tags, ParseError
 
 
 def format_code(code, lang):
@@ -86,6 +86,7 @@ def popular_list(popular_dict):
         tmp.append(None)
     return tmp
 
+
 def icon_path(name='srcnip.png'):
     return '/usr/share/srcnip/' + name
 
@@ -102,13 +103,15 @@ class AddDialog(QDialog):
         else:
             self.code_editor.setFontFamily("mono")
         
-        
         self.tags_input = QLineEdit(self)
         self.tags_input.setMinimumWidth(300)
+        self.connect(self.tags_input, SIGNAL("editingFinished()"), self.on_tags)
+        self.connect(self.tags_input, SIGNAL("textChanged(QString)"), self.on_tags) # textEdited (QString)
         self.tags_label = QLabel("&Tags:")
         self.tags_label.setBuddy(self.tags_input)
         
         self.lang_combo = QComboBox()
+        self.connect(self.lang_combo, SIGNAL("activated(int)"), self.on_lang_activated)
         self.lang_label = QLabel("&Language:")
         self.lang_label.setBuddy(self.lang_combo)
         
@@ -127,21 +130,51 @@ class AddDialog(QDialog):
         self.connect(buttonBox, SIGNAL("accepted()"), self, SLOT("accept()"))
         self.connect(buttonBox, SIGNAL("rejected()"), self, SLOT("reject()"))
         self.setWindowTitle("Add snippet")
-        
-        self.reset_dialog()
     
-    def reset_dialog(self):
-        add_combo_items(self.lang_combo, ['Text', None] + popular_list(self.parent.storage.lang_count()) + languages.get_names())
+    def display(self):
+        self.lang_activated = False
         
-        self.code_editor.clear()
-        self.tags_input.setText('')
-        self.lang_combo.setCurrentIndex(0)
-        self.code_editor.setFocus()
+        lang_list = ['Text', None] + popular_list(self.parent.storage.lang_count()) + languages.get_names()
+        self.lang_indexes = {}
+        for index, lang in enumerate(lang_list):
+            self.lang_indexes[lang] = index
+        add_combo_items(self.lang_combo, lang_list)
+        
+        AUTOPASTE = True
+        if AUTOPASTE:
+            clipboard = QApplication.clipboard()
+            mimeData = clipboard.mimeData()
+            data = unicode(mimeData.text())
+            
+            self.code_editor.setText(data)
+            self.tags_input.setText('')
+            self.tags_input.setFocus()
+            self.lang_combo.setCurrentIndex(0)
+        else:
+            self.code_editor.clear()
+            self.tags_input.setText('')
+            self.lang_combo.setCurrentIndex(0)
+            self.code_editor.setFocus()
+        
+        self.show()
+        
+        
+        
+    def on_tags(self, *ignore):
+        tags, lang = parse_tags(unicode(self.tags_input.text()))
+        if lang and (lang in languages):
+            index = self.lang_indexes[languages[lang].name]
+            self.lang_combo.setCurrentIndex(index)
+    
+    def on_lang_activated(self):
+        self.lang_activated = True
     
     def on_add(self):
         code = unicode(self.code_editor.toPlainText())
-        tags = unicode(self.tags_input.text())
-        lang = unicode(self.lang_combo.currentText())
+        
+        tags, lang = parse_tags(unicode(self.tags_input.text()))
+        if self.lang_activated or (lang is None):
+            lang = unicode(self.lang_combo.currentText())
         
         self.parent.storage.save(Snippet(code, tags, lang))
     
@@ -151,11 +184,9 @@ class AddDialog(QDialog):
     
     def accept(self):
         self.on_add()
-        self.reset_dialog()
         self.hide()
     
     def reject(self):
-        self.reset_dialog()
         self.hide()
 
 
@@ -254,7 +285,8 @@ class MainWindow(QDialog):
             self.show()
     
     def on_add(self):
-        self.add_dialog.show()
+        #self.add_dialog.show()
+        self.add_dialog.display()
         
     def on_copy(self, nr):
         nr = nr - 1;
