@@ -1,15 +1,6 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
-# reStructuredText
-"""
-Source code snippets - with a few keystrokes
-
-Features:
- - powerfull and easy search syntax
- - never have to leave the keyboard
- - adding new snippet is only few seconds
-"""
 
 """
 Copyright (C) 2010 Krzysztof Kosyl <krzysztof.kosyl@gmail.com>
@@ -44,12 +35,29 @@ def find_packages(base):
     return result
 
 
+def extract_desc(filename):
+    """ Return first section from reStructuredText file """
+    lines = open(filename).read().splitlines()
+    result, in_desc = [], False
+    for line in lines:
+        separator = line.startswith(('-----', '====='))
+        if in_desc and separator:
+            return '\n'.join(result[:-1]).strip()
+        if in_desc:
+            result.append(line)
+        else:
+            in_desc = separator
+
+
+version = __import__('srcnip').__version__
+
+
 setup(
     name='srcnip',
-    version='0.2.0',
+    version=version,
     license='GPL',
     description='Source code snippets',
-    long_description=__doc__,
+    long_description=extract_desc('README.md'),
     author='Krzysztof Kosyl',
     author_email='krzysztof.kosyl@gmail.com',
     packages=find_packages('srcnip'),

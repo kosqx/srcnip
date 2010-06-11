@@ -1,7 +1,12 @@
 srcnip
 ======
 
-Source code snippets - fast add and search.
+Source code snippets - with a few keystrokes
+
+Features:
+ - powerfull and easy search syntax
+ - never have to leave the keyboard
+ - adding new snippet take only a few seconds
 
 
 Requirements
